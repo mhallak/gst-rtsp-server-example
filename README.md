@@ -34,6 +34,7 @@ libopencv-features2d2.4   libopencv-legacy2.4       libopencv-stitching2.4
 5. clone the repository and put it in ~/gst-rtsp-server-1.4.5/examples
 6. build: 
       ~/gst-rtsp-server-1.4.5/configure
+      
       ~/gst-rtsp-server-1.4.5/make
 
 Run:
