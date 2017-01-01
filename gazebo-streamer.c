@@ -22,7 +22,8 @@
 #include <opencv/highgui.h>
 #include <gst/gst.h>
 #include <gst/rtsp-server/rtsp-server.h>
-
+static GMainLoop *loop;
+static int Image_Count = 0;
 typedef struct
 {
   gboolean white;
@@ -103,13 +104,21 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
   /* this instructs appsrc that we will be dealing with timed buffer */
   gst_util_set_object_arg (G_OBJECT (appsrc), "format", "time");
   /* configure the caps of the video */
-  g_object_set (G_OBJECT (appsrc), "caps",
+  /*** Original
+   * g_object_set (G_OBJECT (appsrc), "caps",
       gst_caps_new_simple ("video/x-raw",
           "format", G_TYPE_STRING, "RGB16",
           "width", G_TYPE_INT, 384,
           "height", G_TYPE_INT, 288,
           "framerate", GST_TYPE_FRACTION, 0, 1, NULL), NULL);
-
+          ****/
+     g_object_set (G_OBJECT (appsrc), "caps",
+        gst_caps_new_simple ("video/x-raw",
+                     "format", G_TYPE_STRING, "RGB",
+                     "width", G_TYPE_INT, 640,
+                     "height", G_TYPE_INT, 360,
+                     "framerate", GST_TYPE_FRACTION, 1, 1,
+                     NULL), NULL);
   ctx = g_new0 (MyContext, 1);
   ctx->white = FALSE;
   ctx->timestamp = 0;
@@ -124,7 +133,7 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
 int
 main (int argc, char *argv[])
 {
-  GMainLoop *loop;
+ // GMainLoop *loop;
   GstRTSPServer *server;
   GstRTSPMountPoints *mounts;
   GstRTSPMediaFactory *factory;
@@ -145,9 +154,15 @@ main (int argc, char *argv[])
    * any launch line works as long as it contains elements named pay%d. Each
    * element with pay%d names will be a stream */
   factory = gst_rtsp_media_factory_new ();
-  gst_rtsp_media_factory_set_launch (factory,
-      "( appsrc name=mysrc ! videoconvert ! x264enc ! rtph264pay name=pay0 pt=96 )");
-
+   gst_rtsp_media_factory_set_launch (factory,
+   "( appsrc name=mysrc ! videoconvert ! autovideosink name=pay0 pt=96 )");
+  // orig     "( appsrc name=mysrc ! videoconvert ! x264enc ! rtph264pay name=pay0 pt=96 )");
+  /** video gst_rtsp_media_factory_set_launch (factory, "( "
+      "videotestsrc ! video/x-raw,width=352,height=288,framerate=15/1 ! "
+      "x264enc ! rtph264pay name=pay0 pt=96 "
+      "audiotestsrc ! audio/x-raw,rate=8000 ! "
+      "alawenc ! rtppcmapay name=pay1 pt=97 " ")"); **/
+//gst_rtsp_media_factory_set_launch (factory, argv[1]);
   /* notify when our media is ready, This is called whenever someone asks for
    * the media and a new pipeline with our appsrc is created */
   g_signal_connect (factory, "media-configure", (GCallback) media_configure, NULL);
