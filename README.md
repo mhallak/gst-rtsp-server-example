@@ -13,6 +13,7 @@ Install:
       From https://gstreamer.freedesktop.org/src/gst-plugins-[base, bad, good, ugly]
       gst-plugins-[base/bad/good/ugly]-1.4.5.tar.xz
 4. Install Opencv-2 from http://docs.opencv.org/trunk/d7/d9f/tutorial_linux_install.html
+   
    Check as follows:
    
    michele@apollo:~$ dpkg -s libopencv
