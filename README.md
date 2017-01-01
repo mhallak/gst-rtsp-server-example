@@ -2,6 +2,7 @@
 The goal is to stream video of a camera in gazebo simulation system
 
 Install:
+
 1. Download gstreamer rtsp server: I used the following:
       From https://gstreamer.freedesktop.org/src/gst-rtsp-server/
       gst-rtsp-server-1.4.5.tar.xz
@@ -33,6 +34,7 @@ libopencv-features2d2.4   libopencv-legacy2.4       libopencv-stitching2.4
       ~/gst-rtsp-server-1.4.5/make
 
 Run:
+
 1. Copy tmp_jpg to /tmp
 2. The relevant examples are:
               test-appsrc.c      ==> run 
