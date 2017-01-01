@@ -15,6 +15,7 @@ Install:
 4. Install Opencv-2 from http://docs.opencv.org/trunk/d7/d9f/tutorial_linux_install.html
    Check as follows:
    michele@apollo:~$ dpkg -s libopencv
+   
 libopencv2.4-java         libopencv-features2d-dev  libopencv-legacy-dev      libopencv-stitching-dev
 libopencv2.4-jni          libopencv-flann2.4        libopencv-ml2.4           libopencv-superres2.4
 libopencv-calib3d2.4      libopencv-flann-dev       libopencv-ml-dev          libopencv-superres-dev
@@ -37,11 +38,12 @@ Run:
 
 1. Copy tmp_jpg to /tmp
 2. The relevant examples are:
+
               test-appsrc.c      ==> run 
               test-appsrc-jpg.c  ==> run
                        change the line 61:
                             if (Image_Count > 299) Image_Count=0; 
                         with:
                             if (Image_Count > 10) Image_Count=0;)
-              gazebo-streamer.c is a mixed of the previous example and crashes (:+(
+3. gazebo-streamer.c is a mixed of the previous example and crashes (:+(
               
