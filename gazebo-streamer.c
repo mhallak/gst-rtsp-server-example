@@ -34,16 +34,17 @@ typedef struct
 static void
 need_data (GstElement * appsrc, guint unused, MyContext * ctx)
 {
-   static gboolean white = FALSE;
-  static GstClockTime timestamp = 0;
-  GstBuffer *buffer;
-  guint size,depth,height,width,step,channels;
+  // static gboolean white = FALSE;
+  //static GstClockTime timestamp = 0;
+ 
+  volatile GstBuffer *buffer;
+  volatile guint size,depth,height,width,step,channels;
   GstFlowReturn ret;
   IplImage* img;
   guchar *data1;
   GstMapInfo map;
   char tmp[1024];
-
+  volatile gsize bufsize;
   //img=cvLoadImage("frame1.jpg",CV_LOAD_IMAGE_COLOR); 
   //img=cvLoadImage("/tmp/cam_sensor1-175.jpg",CV_LOAD_IMAGE_COLOR); 
 
@@ -51,7 +52,7 @@ need_data (GstElement * appsrc, guint unused, MyContext * ctx)
   snprintf(tmp, sizeof(tmp), "/tmp/cam_sensor1-%02d.jpg",Image_Count);
   
   img=cvLoadImage(tmp,CV_LOAD_IMAGE_COLOR); 
-  if (img == (IplImage *) NULL) size=1024;
+  if (img == (IplImage *) NULL) size=385 * 288 * 2;
   else {
     height    = img->height;  
     width     = img->width;
@@ -61,19 +62,21 @@ need_data (GstElement * appsrc, guint unused, MyContext * ctx)
     data1      = (guchar *)img->imageData;
     size = height*width*channels;
   }
-
+  //size = 2048000;
   buffer = gst_buffer_new_allocate (NULL, size, NULL);
   gst_buffer_map (buffer, &map, GST_MAP_WRITE);
+  bufsize = gst_buffer_get_size( buffer );
   memcpy( (guchar *)map.data, data1,  gst_buffer_get_size( buffer ) );
   /* this makes the image black/white */
-  //gst_buffer_memset (buffer, 0, white ? 0xff : 0x0, size);
+  //7ngst_buffer_memset (buffer, 0, ctx->white ? 0xff : 0x0, size);
+  //white = ctx->white;
+  //timestamp = ctx->timestamp;
+  
+  ctx->white = !ctx->white;
 
-  white = !white;
-
-  GST_BUFFER_PTS (buffer) = timestamp;
+  GST_BUFFER_PTS (buffer) = ctx->timestamp;
   GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale_int (1, GST_SECOND, 2);
-
-  timestamp += GST_BUFFER_DURATION (buffer);
+  ctx->timestamp += GST_BUFFER_DURATION (buffer);
 
   g_signal_emit_by_name (appsrc, "push-buffer", buffer, &ret);
 
@@ -93,6 +96,7 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
 {
   GstElement *element, *appsrc;
   MyContext *ctx;
+  //GstElement *element, *pipeline, *appsrc, *conv, *videosink;
   g_print("media_configure has been called\n");
 
   /* get the element used for providing the streams of the media */
@@ -104,14 +108,15 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
   /* this instructs appsrc that we will be dealing with timed buffer */
   gst_util_set_object_arg (G_OBJECT (appsrc), "format", "time");
   /* configure the caps of the video */
-  /*** Original
-   * g_object_set (G_OBJECT (appsrc), "caps",
+  /*** Original**/
+  g_object_set (G_OBJECT (appsrc), "caps",
       gst_caps_new_simple ("video/x-raw",
-          "format", G_TYPE_STRING, "RGB16",
-          "width", G_TYPE_INT, 384,
-          "height", G_TYPE_INT, 288,
-          "framerate", GST_TYPE_FRACTION, 0, 1, NULL), NULL);
-          ****/
+          "format", G_TYPE_STRING, "RGB",
+          "width", G_TYPE_INT, 640,
+          "height", G_TYPE_INT, 480,
+          "framerate", GST_TYPE_FRACTION, 1, 1, NULL), NULL);
+          /****/
+  /*** from appsrc-jpg
      g_object_set (G_OBJECT (appsrc), "caps",
         gst_caps_new_simple ("video/x-raw",
                      "format", G_TYPE_STRING, "RGB",
@@ -119,9 +124,16 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
                      "height", G_TYPE_INT, 360,
                      "framerate", GST_TYPE_FRACTION, 1, 1,
                      NULL), NULL);
+                     ***/
   ctx = g_new0 (MyContext, 1);
   ctx->white = FALSE;
   ctx->timestamp = 0;
+   /* setup appsrc 
+  g_object_set (G_OBJECT (appsrc),
+        "stream-type", 0,
+        "format", GST_FORMAT_TIME, NULL);*/
+  printf("gazebo-streamer....!!!\n");
+  
   /* make sure ther datais freed when the media is gone */
   g_object_set_data_full (G_OBJECT (media), "my-extra-data", ctx,
       (GDestroyNotify) g_free);
@@ -137,6 +149,8 @@ main (int argc, char *argv[])
   GstRTSPServer *server;
   GstRTSPMountPoints *mounts;
   GstRTSPMediaFactory *factory;
+  
+
 
   gst_init (&argc, &argv);
 
@@ -155,13 +169,11 @@ main (int argc, char *argv[])
    * element with pay%d names will be a stream */
   factory = gst_rtsp_media_factory_new ();
    gst_rtsp_media_factory_set_launch (factory,
-   "( appsrc name=mysrc ! videoconvert ! autovideosink name=pay0 pt=96 )");
-  // orig     "( appsrc name=mysrc ! videoconvert ! x264enc ! rtph264pay name=pay0 pt=96 )");
-  /** video gst_rtsp_media_factory_set_launch (factory, "( "
-      "videotestsrc ! video/x-raw,width=352,height=288,framerate=15/1 ! "
-      "x264enc ! rtph264pay name=pay0 pt=96 "
-      "audiotestsrc ! audio/x-raw,rate=8000 ! "
-      "alawenc ! rtppcmapay name=pay1 pt=97 " ")"); **/
+       "( appsrc name=mysrc ! videoconvert ! x264enc ! rtph264pay name=pay0 pt=96 )");
+
+  //   "( appsrc name=mysrc ! videoconvert ! autovideosink name=pay0 pt=96 )");
+  //   "( appsrc name=mysrc ! videoconvert ! x264enc ! rtph264pay name=pay0 pt=96 )");
+  
 //gst_rtsp_media_factory_set_launch (factory, argv[1]);
   /* notify when our media is ready, This is called whenever someone asks for
    * the media and a new pipeline with our appsrc is created */

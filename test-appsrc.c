@@ -34,7 +34,7 @@ need_data (GstElement * appsrc, guint unused, MyContext * ctx)
   GstBuffer *buffer;
   guint size;
   GstFlowReturn ret;
-  g_print("need_data has been called\n");
+  g_print("need_data has been called");
 
   size = 385 * 288 * 2;
 
@@ -51,6 +51,7 @@ need_data (GstElement * appsrc, guint unused, MyContext * ctx)
   ctx->timestamp += GST_BUFFER_DURATION (buffer);
 
   g_signal_emit_by_name (appsrc, "push-buffer", buffer, &ret);
+  g_print(" ret=%d\n", ret);
 }
 
 /* called when a new media pipeline is constructed. We can query the
