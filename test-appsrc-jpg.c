@@ -12,11 +12,11 @@ cb_need_data (GstElement *appsrc,
 {
   static gboolean white = FALSE;
   static GstClockTime timestamp = 0;
-  GstBuffer *buffer;
-  guint size,depth,height,width,step,channels;
+  volatile GstBuffer *buffer;
+  volatile guint size,depth,height,width,step,channels;
   GstFlowReturn ret;
-  IplImage* img;
-  guchar *data1;
+  volatile IplImage* img;
+  volatile guchar *data1;
   GstMapInfo map;
   char tmp[1024];
 
