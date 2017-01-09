@@ -52,7 +52,7 @@ need_data (GstElement * appsrc, guint unused, MyContext * ctx)
   snprintf(tmp, sizeof(tmp), "/tmp/cam_sensor1-%02d.jpg",Image_Count);
   
   img=cvLoadImage(tmp,CV_LOAD_IMAGE_COLOR); 
-  if (img == (IplImage *) NULL) size=385 * 288 * 2;
+  if (img == (IplImage *) NULL) size=384 * 288 * 2;
   else {
     height    = img->height;  
     width     = img->width;
@@ -62,8 +62,9 @@ need_data (GstElement * appsrc, guint unused, MyContext * ctx)
     data1      = (guchar *)img->imageData;
     size = height*width*channels;
   }
-  //size = 2048000;
+  //size = 1228800;
   buffer = gst_buffer_new_allocate (NULL, size, NULL);
+  g_print("allocated size %d\n", size);
   gst_buffer_map (buffer, &map, GST_MAP_WRITE);
   bufsize = gst_buffer_get_size( buffer );
   memcpy( (guchar *)map.data, data1,  gst_buffer_get_size( buffer ) );
@@ -108,23 +109,24 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
   /* this instructs appsrc that we will be dealing with timed buffer */
   gst_util_set_object_arg (G_OBJECT (appsrc), "format", "time");
   /* configure the caps of the video */
-  /*** Original**/
+  /*** Original
   g_object_set (G_OBJECT (appsrc), "caps",
       gst_caps_new_simple ("video/x-raw",
-          "format", G_TYPE_STRING, "RGB16",
-          "width", G_TYPE_INT, 384,
-          "height", G_TYPE_INT, 288,
+          "format", G_TYPE_STRING, "ARGB",
+          "width", G_TYPE_INT, 640,
+          "height", G_TYPE_INT, 480,
+	  "pixel-aspect-ratio", GST_TYPE_FRACTION, 1, 1,
           "framerate", GST_TYPE_FRACTION, 0, 1, NULL), NULL);
           /****/
-  /*** from appsrc-jpg
+  /*** from appsrc-jpg try image/jpeg *** completely useless ***/
      g_object_set (G_OBJECT (appsrc), "caps",
-        gst_caps_new_simple ("video/x-raw",
-                     "format", G_TYPE_STRING, "RGB16",
+        gst_caps_new_simple ("image/jpeg",
+                     "format", G_TYPE_STRING, "ARGB",
                      "width", G_TYPE_INT, 640,
-                     "height", G_TYPE_INT, 360,
-                     "framerate", GST_TYPE_FRACTION, 0, 1,
+                     "height", G_TYPE_INT, 480,
+                     "framerate", GST_TYPE_FRACTION, 1, 1,
                      NULL), NULL);
-                     ***/
+                     /***/
   ctx = g_new0 (MyContext, 1);
   ctx->white = FALSE;
   ctx->timestamp = 0;
@@ -166,8 +168,8 @@ main (int argc, char *argv[])
         gst_caps_new_simple ("video/x-raw",
                      "format", G_TYPE_STRING, "RGB",
                      "width", G_TYPE_INT, 640,
-                     "height", G_TYPE_INT, 360,
-                     "framerate", GST_TYPE_FRACTION, 1, 1,
+                     "height", G_TYPE_INT, 480,
+                     "framerate", GST_TYPE_FRACTION, 0, 1,
                      NULL), NULL);
     gst_bin_add_many (GST_BIN (pipeline), appsrc, conv, videosink, NULL);
     gst_element_link_many (appsrc, conv, videosink, NULL);
@@ -175,7 +177,9 @@ main (int argc, char *argv[])
         "stream-type", 0,
         "format", GST_FORMAT_TIME, NULL);
 #endif
-    str = g_strdup_printf("(appsrc name=mysrc ! video/x-raw,format=ARGB ! videoconvert ! video/x-raw,format=YUY2 ! autovideosink name=pay0 pt=96 )");
+   
+    str = g_strdup_printf("( appsrc name=mysrc ! videoconvert ! x264enc ! rtph264pay name=pay0 pt=96 )");
+    //str = g_strdup_printf("(appsrc name=mysrc ! video/x-raw,format=ARGB ! videoconvert ! video/x-raw,format=YUY2 ! autovideosink name=pay0 pt=96 )");
   }
   else str = argv[1];
   
