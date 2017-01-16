@@ -2,7 +2,7 @@ noinst_PROGRAMS = test-video test-ogg test-mp4 test-readme \
 		  test-launch test-sdp test-uri test-auth \
 		  test-multicast test-multicast2 test-appsrc \
 		  test-appsrc-jpg gazebo-streamer test-updsink \
-		  test-appsrc-michael
+		  test-appsrc-michael gz-file-streamer
 
 #INCLUDES = -I$(top_srcdir) -I$(srcdir)
 

@@ -37,7 +37,7 @@ need_data (GstElement * appsrc, guint unused, MyContext * ctx)
   // static gboolean white = FALSE;
   //static GstClockTime timestamp = 0;
  
-  volatile GstBuffer *buffer;
+  volatile GstBuffer *buffer, *new_buffer;
   volatile guint size,depth,height,width,step,channels;
   GstFlowReturn ret;
   volatile IplImage* img;
@@ -45,6 +45,7 @@ need_data (GstElement * appsrc, guint unused, MyContext * ctx)
   GstMapInfo map;
   char tmp[1024];
   volatile gsize bufsize;
+  volatile guint8 *inbuf_u;
   //img=cvLoadImage("frame1.jpg",CV_LOAD_IMAGE_COLOR); 
   //img=cvLoadImage("/tmp/cam_sensor1-175.jpg",CV_LOAD_IMAGE_COLOR); 
 
@@ -60,7 +61,8 @@ need_data (GstElement * appsrc, guint unused, MyContext * ctx)
     channels  = img->nChannels;
     depth     = img->depth;
     data1      = (guchar *)img->imageData;
-    size = height*width*channels;
+   // size = height*width*channels;
+    size      = img->imageSize;
   }
   //size = 1228800;
   buffer = gst_buffer_new_allocate (NULL, size, NULL);
@@ -72,21 +74,27 @@ need_data (GstElement * appsrc, guint unused, MyContext * ctx)
   //7ngst_buffer_memset (buffer, 0, ctx->white ? 0xff : 0x0, size);
   //white = ctx->white;
   //timestamp = ctx->timestamp;
+  inbuf_u = (guint8 *)malloc(size);
+  memcpy(inbuf_u, data1, size);
+  
+  Image_Count++;
+  if (Image_Count > 299) Image_Count=0;
   
   ctx->white = !ctx->white;
+  new_buffer=gst_buffer_new_wrapped(inbuf_u, size);
 
-  GST_BUFFER_PTS (buffer) = ctx->timestamp;
-  GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale_int (1, GST_SECOND, 2);
-  ctx->timestamp += GST_BUFFER_DURATION (buffer);
+  GST_BUFFER_PTS (new_buffer) = ctx->timestamp;
+  //Mik GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale_int (1, GST_SECOND, 2);
+  /*Mik*/ ctx->timestamp += 25 * 1000000;
+  //Mik ctx->timestamp += GST_BUFFER_DURATION (buffer);
 
-  g_signal_emit_by_name (appsrc, "push-buffer", buffer, &ret);
+  g_signal_emit_by_name (appsrc, "push-buffer", new_buffer, &ret);
 
   if (ret != GST_FLOW_OK) {
     /* something wrong, stop pushing */
     g_main_loop_quit (loop);
   }
-  Image_Count++;
-  if (Image_Count > 299) Image_Count=0;
+  
 }
 
 /* called when a new media pipeline is constructed. We can query the
@@ -121,10 +129,10 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
   /*** from appsrc-jpg try image/jpeg *** completely useless ***/
      g_object_set (G_OBJECT (appsrc), "caps",
         gst_caps_new_simple ("image/jpeg",
-                     "format", G_TYPE_STRING, "ARGB",
-                     "width", G_TYPE_INT, 640,
-                     "height", G_TYPE_INT, 480,
-                     "framerate", GST_TYPE_FRACTION, 1, 1,
+                     "format", G_TYPE_STRING, "RGB",
+                     "width", G_TYPE_INT, 1024,
+                     "height", G_TYPE_INT, 768,
+                     "framerate", GST_TYPE_FRACTION, 0, 1,
                      NULL), NULL);
                      /***/
   ctx = g_new0 (MyContext, 1);
@@ -178,7 +186,7 @@ main (int argc, char *argv[])
         "format", GST_FORMAT_TIME, NULL);
 #endif
    
-    str = g_strdup_printf("( appsrc name=mysrc ! videoconvert ! x264enc ! rtph264pay name=pay0 pt=96 )");
+    str = g_strdup_printf("( appsrc name=mysrc ! decodebin ! videoconvert ! x264enc ! rtph264pay name=pay0 pt=96 )");
     //str = g_strdup_printf("(appsrc name=mysrc ! video/x-raw,format=ARGB ! videoconvert ! video/x-raw,format=YUY2 ! autovideosink name=pay0 pt=96 )");
   }
   else str = argv[1];
