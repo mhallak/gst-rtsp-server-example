@@ -45,12 +45,20 @@ need_data (GstElement * appsrc, guint unused, MyContext * ctx)
   GstMapInfo map;
   char tmp[1024];
   volatile gsize bufsize;
-  volatile guint8 *inbuf_u=0;
+
+  volatile guint8 *inbuf_u = 0;
+
   //img=cvLoadImage("frame1.jpg",CV_LOAD_IMAGE_COLOR); 
   //img=cvLoadImage("/tmp/cam_sensor1-175.jpg",CV_LOAD_IMAGE_COLOR); 
 
-  g_print("need_data has been called with Image_Count=%d\n",Image_Count);
+
+
   snprintf(tmp, sizeof(tmp), "/tmp/cam_sensor1-%02d.jpg",Image_Count);
+  g_print("file=[%s], need_data has been called with Image_Count=%d\n", tmp, Image_Count);
+
+  Image_Count++;
+  if (Image_Count > 10) Image_Count=0;
+
   
   img=cvLoadImage(tmp,CV_LOAD_IMAGE_COLOR); 
   if (img == (IplImage *) NULL) size=384 * 288 * 2;
@@ -64,9 +72,8 @@ need_data (GstElement * appsrc, guint unused, MyContext * ctx)
    // size = height*width*channels;
     size      = img->imageSize;
   }
-  
+
 #if 0
-  //size = 1228800;
   buffer = gst_buffer_new_allocate (NULL, size, NULL);
   g_print("allocated size %d\n", size);
   gst_buffer_map (buffer, &map, GST_MAP_WRITE);
@@ -79,18 +86,24 @@ need_data (GstElement * appsrc, guint unused, MyContext * ctx)
   inbuf_u = (guint8 *)malloc(size);
   memcpy(inbuf_u, data1, size);
 #endif
-  Image_Count++;
-  if (Image_Count > 299) Image_Count=0;
-  
-  inbuf_u = (guint8 *)malloc(size);
+
+#if 1
+//  if  (!inbuf_u)
+	  inbuf_u = (guint8 *)malloc(size);
+
   if (!inbuf_u)
 	  for (;;)
 		  printf("ERROR: malloc failed \n");
 
   memcpy(inbuf_u, data1, size);
+#endif
 
   new_buffer=gst_buffer_new_wrapped(inbuf_u, size);
+
+
+  
   ctx->white = !ctx->white;
+
 
   GST_BUFFER_PTS (new_buffer) = ctx->timestamp;
   //Mik GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale_int (1, GST_SECOND, 2);
@@ -125,17 +138,8 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
 
   /* this instructs appsrc that we will be dealing with timed buffer */
   gst_util_set_object_arg (G_OBJECT (appsrc), "format", "time");
+
   /* configure the caps of the video */
-  /*** Original
-  g_object_set (G_OBJECT (appsrc), "caps",
-      gst_caps_new_simple ("video/x-raw",
-          "format", G_TYPE_STRING, "ARGB",
-          "width", G_TYPE_INT, 640,
-          "height", G_TYPE_INT, 480,
-	  "pixel-aspect-ratio", GST_TYPE_FRACTION, 1, 1,
-          "framerate", GST_TYPE_FRACTION, 0, 1, NULL), NULL);
-          /****/
-  /*** from appsrc-jpg try image/jpeg *** completely useless ***/
      g_object_set (G_OBJECT (appsrc), "caps",
         gst_caps_new_simple ("video/x-raw",
                      "format", G_TYPE_STRING, "RGB",
@@ -161,23 +165,17 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
   g_signal_connect (appsrc, "need-data", (GCallback) need_data, ctx);
 }
 
+
 int
 main (int argc, char *argv[])
 {
- // GMainLoop *loop;
+  GMainLoop *loop;
   GstRTSPServer *server;
   GstRTSPMountPoints *mounts;
   GstRTSPMediaFactory *factory;
-  volatile GstElement *pipeline, *appsrc, *conv, *videosink;
-  gchar *str;
 
   gst_init (&argc, &argv);
-  if (argc < 2) {
-    str = g_strdup_printf("( appsrc name=mysrc ! videoconvert ! x264enc ! rtph264pay name=pay0 pt=96 )");
-    //str = g_strdup_printf("(appsrc name=mysrc ! video/x-raw,format=ARGB ! videoconvert ! video/x-raw,format=YUY2 ! autovideosink name=pay0 pt=96 )");
-  }
-  else str = argv[1];
-  
+
   loop = g_main_loop_new (NULL, FALSE);
 
   /* create a server instance */
@@ -192,16 +190,14 @@ main (int argc, char *argv[])
    * any launch line works as long as it contains elements named pay%d. Each
    * element with pay%d names will be a stream */
   factory = gst_rtsp_media_factory_new ();
- //  gst_rtsp_media_factory_set_launch (factory,
- //   "( appsrc name=mysrc ! video/x-raw,format=YUY2 ! videoconvert ! autovideosink name=pay0 pt=96 )");
+  gst_rtsp_media_factory_set_launch (factory,
+		  "( appsrc name=mysrc ! videoconvert ! x264enc ! rtph264pay name=pay0 pt=96 )");
 
-  //   "( appsrc name=mysrc ! videoconvert ! autovideosink name=pay0 pt=96 )");
-  //   "( appsrc name=mysrc ! videoconvert ! x264enc ! rtph264pay name=pay0 pt=96 )");
-  
-  gst_rtsp_media_factory_set_launch (factory, str);
+
   /* notify when our media is ready, This is called whenever someone asks for
    * the media and a new pipeline with our appsrc is created */
-  g_signal_connect (factory, "media-configure", (GCallback) media_configure, NULL);
+  g_signal_connect (factory, "media-configure", (GCallback) media_configure,
+      NULL);
 
   /* attach the test factory to the /test url */
   gst_rtsp_mount_points_add_factory (mounts, "/test", factory);
@@ -218,3 +214,5 @@ main (int argc, char *argv[])
 
   return 0;
 }
+
+

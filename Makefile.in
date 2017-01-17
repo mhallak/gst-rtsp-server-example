@@ -85,7 +85,8 @@ noinst_PROGRAMS = test-video$(EXEEXT) test-ogg$(EXEEXT) \
 	test-multicast$(EXEEXT) test-multicast2$(EXEEXT) \
 	test-appsrc$(EXEEXT) test-appsrc-jpg$(EXEEXT) \
 	gazebo-streamer$(EXEEXT) test-updsink$(EXEEXT) \
-	test-appsrc-michael$(EXEEXT) $(am__EXEEXT_1)
+	test-appsrc-michael$(EXEEXT) gz-file-streamer$(EXEEXT) \
+	gazebo-streamer-mik$(EXEEXT) $(am__EXEEXT_1)
 @HAVE_LIBCGROUP_TRUE@am__append_1 = test-cgroups
 @HAVE_LIBCGROUP_TRUE@am__append_2 = $(LIBCGROUP_LIBS)
 subdir = examples
@@ -133,6 +134,16 @@ AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+gazebo_streamer_mik_SOURCES = gazebo-streamer-mik.c
+gazebo_streamer_mik_OBJECTS = gazebo-streamer-mik.$(OBJEXT)
+gazebo_streamer_mik_LDADD = $(LDADD)
+gazebo_streamer_mik_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(OPENCV_LIBS_LOC) $(am__DEPENDENCIES_2)
+gz_file_streamer_SOURCES = gz-file-streamer.c
+gz_file_streamer_OBJECTS = gz-file-streamer.$(OBJEXT)
+gz_file_streamer_LDADD = $(LDADD)
+gz_file_streamer_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(OPENCV_LIBS_LOC) $(am__DEPENDENCIES_2)
 test_appsrc_SOURCES = test-appsrc.c
 test_appsrc_OBJECTS = test-appsrc.$(OBJEXT)
 test_appsrc_LDADD = $(LDADD)
@@ -242,12 +253,13 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = gazebo-streamer.c test-appsrc.c test-appsrc-jpg.c \
-	test-appsrc-michael.c test-auth.c test-cgroups.c test-launch.c \
-	test-mp4.c test-multicast.c test-multicast2.c test-ogg.c \
-	test-readme.c test-sdp.c test-updsink.c test-uri.c \
-	test-video.c
-DIST_SOURCES = gazebo-streamer.c test-appsrc.c test-appsrc-jpg.c \
+SOURCES = gazebo-streamer.c gazebo-streamer-mik.c gz-file-streamer.c \
+	test-appsrc.c test-appsrc-jpg.c test-appsrc-michael.c \
+	test-auth.c test-cgroups.c test-launch.c test-mp4.c \
+	test-multicast.c test-multicast2.c test-ogg.c test-readme.c \
+	test-sdp.c test-updsink.c test-uri.c test-video.c
+DIST_SOURCES = gazebo-streamer.c gazebo-streamer-mik.c \
+	gz-file-streamer.c test-appsrc.c test-appsrc-jpg.c \
 	test-appsrc-michael.c test-auth.c test-cgroups.c test-launch.c \
 	test-mp4.c test-multicast.c test-multicast2.c test-ogg.c \
 	test-readme.c test-sdp.c test-updsink.c test-uri.c \
@@ -558,6 +570,14 @@ gazebo-streamer$(EXEEXT): $(gazebo_streamer_OBJECTS) $(gazebo_streamer_DEPENDENC
 	@rm -f gazebo-streamer$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(gazebo_streamer_OBJECTS) $(gazebo_streamer_LDADD) $(LIBS)
 
+gazebo-streamer-mik$(EXEEXT): $(gazebo_streamer_mik_OBJECTS) $(gazebo_streamer_mik_DEPENDENCIES) $(EXTRA_gazebo_streamer_mik_DEPENDENCIES) 
+	@rm -f gazebo-streamer-mik$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(gazebo_streamer_mik_OBJECTS) $(gazebo_streamer_mik_LDADD) $(LIBS)
+
+gz-file-streamer$(EXEEXT): $(gz_file_streamer_OBJECTS) $(gz_file_streamer_DEPENDENCIES) $(EXTRA_gz_file_streamer_DEPENDENCIES) 
+	@rm -f gz-file-streamer$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(gz_file_streamer_OBJECTS) $(gz_file_streamer_LDADD) $(LIBS)
+
 test-appsrc$(EXEEXT): $(test_appsrc_OBJECTS) $(test_appsrc_DEPENDENCIES) $(EXTRA_test_appsrc_DEPENDENCIES) 
 	@rm -f test-appsrc$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_appsrc_OBJECTS) $(test_appsrc_LDADD) $(LIBS)
@@ -624,7 +644,9 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gazebo-streamer-mik.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gazebo-streamer.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gz-file-streamer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-appsrc-jpg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-appsrc-michael.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-appsrc.Po@am__quote@
