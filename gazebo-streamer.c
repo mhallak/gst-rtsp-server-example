@@ -22,6 +22,10 @@
 #include <opencv/highgui.h>
 #include <gst/gst.h>
 #include <gst/rtsp-server/rtsp-server.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+
 static GMainLoop *loop;
 static int Image_Count = 0;
 typedef struct
@@ -30,6 +34,11 @@ typedef struct
   GstClockTime timestamp;
 } MyContext;
 
+//shared memory management
+static key_t key[3];
+#define SHMSZ     1000000 //921600
+int shmid[3];
+void *shmvoid[3];
 /* called when we need to give data to appsrc */
 static void
 need_data (GstElement * appsrc, guint unused, MyContext * ctx)
@@ -52,6 +61,9 @@ need_data (GstElement * appsrc, guint unused, MyContext * ctx)
   g_print("need_data has been called with Image_Count=%d\n",Image_Count);
   snprintf(tmp, sizeof(tmp), "/tmp/cam_sensor1-%02d.jpg",Image_Count);
   
+  data1 = (guchar *) shmvoid[Image_Count];
+  size = 921600;
+#if 0 
   img=cvLoadImage(tmp,CV_LOAD_IMAGE_COLOR); 
   if (img == (IplImage *) NULL) size=384 * 288 * 2;
   else {
@@ -64,8 +76,8 @@ need_data (GstElement * appsrc, guint unused, MyContext * ctx)
    // size = height*width*channels;
     size      = img->imageSize;
   }
-  
-#if 0
+#endif
+#if 0 
   //size = 1228800;
   buffer = gst_buffer_new_allocate (NULL, size, NULL);
   g_print("allocated size %d\n", size);
@@ -80,7 +92,7 @@ need_data (GstElement * appsrc, guint unused, MyContext * ctx)
   memcpy(inbuf_u, data1, size);
 #endif
   Image_Count++;
-  if (Image_Count > 299) Image_Count=0;
+  if (Image_Count > 2) Image_Count=0;
   
   inbuf_u = (guint8 *)malloc(size);
   if (!inbuf_u)
@@ -170,6 +182,7 @@ main (int argc, char *argv[])
   GstRTSPMediaFactory *factory;
   volatile GstElement *pipeline, *appsrc, *conv, *videosink;
   gchar *str;
+  int i;
 
   gst_init (&argc, &argv);
   if (argc < 2) {
@@ -212,6 +225,25 @@ main (int argc, char *argv[])
   /* attach the server to the default maincontext */
   gst_rtsp_server_attach (server, NULL);
 
+  //Attach shared memory
+  key[0] = 8400;
+  key[1] = 8401;
+  key[2] = 8402;
+  for (i=0; i<3; i++) {
+    if ((shmid[i] = shmget(key[i], SHMSZ, IPC_CREAT | 0666)) < 0) {
+            perror("shmget");
+            // exit(1);
+    }
+    else printf("Segment %d has been created <%d> ?!\n", i, shmid[i]);
+      /*
+       * Now we attach the segment to our data space.
+       */
+    if ((shmvoid[i] = shmat(shmid[i], NULL, 0)) == (void *) -1) {
+            perror("shmat");
+            //exit(1);
+    }
+    printf("Segment %d has been attached <%d> ?!\n", i, shmid[i]);
+  }
   /* start serving */
   g_print ("stream ready at rtsp://127.0.0.1:8554/test\n");
   g_main_loop_run (loop);
