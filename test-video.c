@@ -59,7 +59,6 @@ main (int argc, char *argv[])
 #endif
 #ifdef WITH_TLS
   GTlsCertificate *cert;
-  GError *error = NULL;
 #endif
 
   gst_init (&argc, &argv);
@@ -96,11 +95,7 @@ main (int argc, char *argv[])
       "tTdPbW829BoUtIeH64cCIQDggG5i48v7HPacPBIH1RaSVhXl8qHCpQD3qrIw3FMw"
       "DwIga8PqH5Sf5sHedy2+CiK0V4MRfoU4c3zQ6kArI+bEgSkCIQCLA1vXBiE31B5s"
       "bdHoYa1BXebfZVd+1Hd95IfEM5mbRwIgSkDuQwV55BBlvWph3U8wVIMIb4GStaH8"
-      "W535W8UBbEg=" "-----END PRIVATE KEY-----", -1, &error);
-  if (cert == NULL) {
-    g_printerr ("failed to parse PEM: %s\n", error->message);
-    return -1;
-  }
+      "W535W8UBbEg=" "-----END PRIVATE KEY-----", -1, NULL);
   gst_rtsp_auth_set_tls_certificate (auth, cert);
   g_object_unref (cert);
 #endif
@@ -127,19 +122,11 @@ main (int argc, char *argv[])
    * any launch line works as long as it contains elements named pay%d. Each
    * element with pay%d names will be a stream */
   factory = gst_rtsp_media_factory_new ();
-  
   gst_rtsp_media_factory_set_launch (factory, "( "
       "videotestsrc ! video/x-raw,width=352,height=288,framerate=15/1 ! "
       "x264enc ! rtph264pay name=pay0 pt=96 "
       "audiotestsrc ! audio/x-raw,rate=8000 ! "
-      "alawenc ! rtppcmapay name=pay1 pt=97 " ")"); 
-  /*** Michael
-    gst_rtsp_media_factory_set_launch (factory, "( "
-	"nvcamerasrc fpsRange='30 60' intent=3 ! nvvidconv flip-method=6 ! "
-	"video/x-raw(memory:NVMM), width=(int)1920, height=(int)1080, format=(string)I420, framerate=(fraction)60/1 ! "
- 	"omxh264enc bitrate=4000000 ! video/x-h264, stream-format=(string)byte-stream ! h264parse ! "
-	"rtph264pay mtu=1400 pt=96 name=pay0 " ")");
-	***/
+      "alawenc ! rtppcmapay name=pay1 pt=97 " ")");
 #ifdef WITH_AUTH
   /* add permissions for the user media role */
   permissions = gst_rtsp_permissions_new ();
@@ -148,9 +135,6 @@ main (int argc, char *argv[])
       GST_RTSP_PERM_MEDIA_FACTORY_CONSTRUCT, G_TYPE_BOOLEAN, TRUE, NULL);
   gst_rtsp_media_factory_set_permissions (factory, permissions);
   gst_rtsp_permissions_unref (permissions);
-#ifdef WITH_TLS
-  gst_rtsp_media_factory_set_profiles (factory, GST_RTSP_PROFILE_SAVP);
-#endif
 #endif
 
   /* attach the test factory to the /test url */

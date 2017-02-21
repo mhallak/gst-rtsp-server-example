@@ -34,7 +34,6 @@ need_data (GstElement * appsrc, guint unused, MyContext * ctx)
   GstBuffer *buffer;
   guint size;
   GstFlowReturn ret;
-  g_print("need_data has been called");
 
   size = 385 * 288 * 2;
 
@@ -51,7 +50,6 @@ need_data (GstElement * appsrc, guint unused, MyContext * ctx)
   ctx->timestamp += GST_BUFFER_DURATION (buffer);
 
   g_signal_emit_by_name (appsrc, "push-buffer", buffer, &ret);
-  g_print(" ret=%d\n", ret);
 }
 
 /* called when a new media pipeline is constructed. We can query the
@@ -62,7 +60,6 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
 {
   GstElement *element, *appsrc;
   MyContext *ctx;
-  g_print("media_configure has been called\n");
 
   /* get the element used for providing the streams of the media */
   element = gst_rtsp_media_get_element (media);

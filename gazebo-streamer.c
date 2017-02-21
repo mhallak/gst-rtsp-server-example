@@ -25,6 +25,11 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+//and semaphores
+/** Semaphores  **/
+#include <semaphore.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 static GMainLoop *loop;
 static int Image_Count = 0;
@@ -39,31 +44,37 @@ static key_t key[3];
 #define SHMSZ     1000000 //921600
 int shmid[3];
 void *shmvoid[3];
+
+//semaphores
+const char *SEM_NAME[]= {"sem0", "sem1", "sem2" };
+sem_t *mutex[3];
+
 /* called when we need to give data to appsrc */
 static void
 need_data (GstElement * appsrc, guint unused, MyContext * ctx)
 {
   // static gboolean white = FALSE;
   //static GstClockTime timestamp = 0;
- 
+  
   volatile GstBuffer *buffer, *new_buffer;
   volatile guint size,depth,height,width,step,channels;
   GstFlowReturn ret;
   volatile IplImage* img;
   volatile guchar *data1;
   GstMapInfo map;
-  char tmp[1024];
+  //char tmp[1024];
   volatile gsize bufsize;
   volatile guint8 *inbuf_u=0;
+  int i;
   //img=cvLoadImage("frame1.jpg",CV_LOAD_IMAGE_COLOR); 
   //img=cvLoadImage("/tmp/cam_sensor1-175.jpg",CV_LOAD_IMAGE_COLOR); 
 
   g_print("need_data has been called with Image_Count=%d\n",Image_Count);
-  snprintf(tmp, sizeof(tmp), "/tmp/cam_sensor1-%02d.jpg",Image_Count);
-  
+  i = Image_Count;
   data1 = (guchar *) shmvoid[Image_Count];
   size = 921600;
 #if 0 
+  snprintf(tmp, sizeof(tmp), "/tmp/cam_sensor1-%02d.jpg",Image_Count);
   img=cvLoadImage(tmp,CV_LOAD_IMAGE_COLOR); 
   if (img == (IplImage *) NULL) size=384 * 288 * 2;
   else {
@@ -98,9 +109,11 @@ need_data (GstElement * appsrc, guint unused, MyContext * ctx)
   if (!inbuf_u)
 	  for (;;)
 		  printf("ERROR: malloc failed \n");
-
+  
+  g_print("mutex nb %d\n",i);
+  sem_wait(mutex[i]);
   memcpy(inbuf_u, data1, size);
-
+  sem_post(mutex[i]);
   new_buffer=gst_buffer_new_wrapped(inbuf_u, size);
   ctx->white = !ctx->white;
 
@@ -225,6 +238,17 @@ main (int argc, char *argv[])
   /* attach the server to the default maincontext */
   gst_rtsp_server_attach (server, NULL);
 
+  //Create and initialize named semaphores
+  for (i=0; i<3; i++) {
+    mutex[i] = sem_open(SEM_NAME[i],O_CREAT,0644,1);
+        if(mutex[i] == SEM_FAILED)
+        {
+          perror("unable to create semaphore");
+          sem_unlink(SEM_NAME[i]);
+          exit(-1);
+        }
+  }
+  
   //Attach shared memory
   key[0] = 8400;
   key[1] = 8401;
@@ -244,6 +268,8 @@ main (int argc, char *argv[])
     }
     printf("Segment %d has been attached <%d> ?!\n", i, shmid[i]);
   }
+  //create and initialize semaphores
+  printf("Now Create and initialize semaphores\n");
   /* start serving */
   g_print ("stream ready at rtsp://127.0.0.1:8554/test\n");
   g_main_loop_run (loop);
